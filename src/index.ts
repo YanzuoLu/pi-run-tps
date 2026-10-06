@@ -12,7 +12,7 @@ export default function runTps(pi: ExtensionAPI): void {
 	});
 	pi.on("message_end", (event) => {
 		if (event.message.role !== "assistant") return;
-		meter.endRequest(performance.now(), event.message.usage.output);
+		meter.endRequest(performance.now(), event.message.usage);
 	});
 	pi.on("agent_settled", (_event, ctx) => {
 		// Extensions may continue the task from their own agent_settled handlers, e.g. after an

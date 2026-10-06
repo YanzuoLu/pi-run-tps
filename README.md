@@ -4,7 +4,7 @@ A Pi extension that prints **one** tokens-per-second summary per agent run, in t
 transcript, when the run settles:
 
 ```text
-⏱ run 3m12s · gen 48.3s · 7 req · out 4.1K · 85.2 tok/s
+⏱ run 3m12s · gen 48.3s · 7 req · in 12.3K · out 4.1K · 85.2 tok/s
 ```
 
 There is no live meter and no footer widget. You get one line per task, after Pi has
@@ -32,8 +32,13 @@ tok/s = ------------------------------------------------------
 | `run` | Wall time from the first `agent_start` to settlement, including tools |
 | `gen` | Sum of provider request durations |
 | `req` | Provider requests that produced an assistant message |
+| `in` | Input not served from the prompt cache: `input + cacheWrite`, summed over requests |
 | `out` | Provider-reported output tokens, including reasoning |
 | `tok/s` | `out / gen` |
+
+Pi reports `input`, `cacheWrite`, and `cacheRead` as disjoint counts. `in` leaves out cheap
+cache reads and keeps the input billed at full or cache-write price, so it compares across
+providers: Anthropic reports most uncached input as `cacheWrite`, OpenAI as `input`.
 
 A run ends at `agent_settled`, when Pi will not continue on its own. Retries and Pi's
 automatic compaction stay inside one run. Continuations that another extension starts from

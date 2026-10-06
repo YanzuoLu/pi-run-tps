@@ -15,7 +15,7 @@ function load() {
 }
 
 function assistant(output: number) {
-	return { message: { role: "assistant", usage: { output } } };
+	return { message: { role: "assistant", usage: { input: 0, cacheWrite: 0, output } } };
 }
 
 let now: ReturnType<typeof vi.spyOn>;
@@ -50,7 +50,7 @@ describe("run-tps extension", () => {
 
 		vi.runAllTimers();
 		expect(notify).toHaveBeenCalledOnce();
-		expect(notify).toHaveBeenCalledWith("⏱ run 32.0s · gen 4.0s · 2 req · out 400 · 100.0 tok/s", "info");
+		expect(notify).toHaveBeenCalledWith("⏱ run 32.0s · gen 4.0s · 2 req · in 0 · out 400 · 100.0 tok/s", "info");
 	});
 
 	it("folds a continuation started from agent_settled into the same summary", () => {
@@ -69,7 +69,7 @@ describe("run-tps extension", () => {
 		emit("agent_settled");
 		vi.runAllTimers();
 		expect(notify).toHaveBeenCalledOnce();
-		expect(notify).toHaveBeenCalledWith("⏱ run 21.0s · gen 2.0s · 2 req · out 200 · 100.0 tok/s", "info");
+		expect(notify).toHaveBeenCalledWith("⏱ run 21.0s · gen 2.0s · 2 req · in 0 · out 200 · 100.0 tok/s", "info");
 	});
 
 	it("stays silent when no request finished", () => {

@@ -1,6 +1,6 @@
 {
 	"name": "pi-run-tps",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Pi extension that prints one token-weighted tokens-per-second summary per agent run, excluding tool execution time",
 	"type": "module",
 	"license": "MIT",

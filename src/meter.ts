@@ -1,3 +1,12 @@
+/** The token counts of one provider request that the meter needs, matching Pi's `Usage`. */
+export interface RequestUsage {
+	/** Input that was neither read from nor written to the prompt cache. */
+	input: number;
+	cacheWrite: number;
+	/** Output tokens, including reasoning. */
+	output: number;
+}
+
 /** Token-weighted throughput of one agent run, from first `agent_start` to `agent_settled`. */
 export interface RunSummary {
 	/** Wall time of the whole run, including tool execution. */
@@ -5,11 +14,13 @@ export interface RunSummary {
 	/** Sum of each provider request's duration, from request send to `message_end`. */
 	generationMs: number;
 	requests: number;
+	/** Input not served from the prompt cache: `input + cacheWrite`. */
+	uncachedInputTokens: number;
 	outputTokens: number;
 }
 
 /**
- * Accumulates provider request timings across one agent run.
+ * Accumulates provider request timings and usage across one agent run.
  *
  * Each request is timed from send to its final assistant message, so time to first token and
  * hidden reasoning count as generation while tool execution between requests does not.
@@ -19,6 +30,7 @@ export class RunMeter {
 	#requestStart: number | null = null;
 	#generationMs = 0;
 	#requests = 0;
+	#uncachedInputTokens = 0;
 	#outputTokens = 0;
 
 	startRun(now: number): void {
@@ -29,10 +41,11 @@ export class RunMeter {
 		this.#requestStart = now;
 	}
 
-	endRequest(now: number, outputTokens: number): void {
+	endRequest(now: number, usage: RequestUsage): void {
 		if (this.#requestStart === null) return;
 		this.#generationMs += now - this.#requestStart;
-		this.#outputTokens += outputTokens;
+		this.#uncachedInputTokens += usage.input + usage.cacheWrite;
+		this.#outputTokens += usage.output;
 		this.#requests++;
 		this.#requestStart = null;
 	}
@@ -46,12 +59,14 @@ export class RunMeter {
 						wallMs: now - this.#runStart,
 						generationMs: this.#generationMs,
 						requests: this.#requests,
+						uncachedInputTokens: this.#uncachedInputTokens,
 						outputTokens: this.#outputTokens,
 					};
 		this.#runStart = null;
 		this.#requestStart = null;
 		this.#generationMs = 0;
 		this.#requests = 0;
+		this.#uncachedInputTokens = 0;
 		this.#outputTokens = 0;
 		return summary;
 	}
@@ -77,6 +92,7 @@ export function formatSummary(summary: RunSummary): string {
 		`⏱ run ${formatDuration(summary.wallMs)}`,
 		`gen ${formatDuration(summary.generationMs)}`,
 		`${summary.requests} req`,
+		`in ${formatTokens(summary.uncachedInputTokens)}`,
 		`out ${formatTokens(summary.outputTokens)}`,
 		`${tokensPerSecond(summary).toFixed(1)} tok/s`,
 	].join(" · ");
