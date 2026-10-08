@@ -21,7 +21,7 @@ function assistant(output: number) {
 let now: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
-	vi.useFakeTimers({ toFake: ["setTimeout"] });
+	vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
 	now = vi.spyOn(performance, "now").mockReturnValue(0);
 });
 
@@ -70,6 +70,17 @@ describe("run-tps extension", () => {
 		vi.runAllTimers();
 		expect(notify).toHaveBeenCalledOnce();
 		expect(notify).toHaveBeenCalledWith("⏱ run 21.0s · gen 2.0s · 2 req · in 0 · out 200 · 100.0 tok/s", "info");
+	});
+
+	it("drops the settled check when the session ends first", () => {
+		const { emit, notify, ctx } = load();
+		emit("agent_start");
+		request(0, 1_000, 100, emit);
+		emit("agent_settled");
+		emit("session_shutdown");
+		vi.runAllTimers();
+		expect(ctx.isIdle).not.toHaveBeenCalled();
+		expect(notify).not.toHaveBeenCalled();
 	});
 
 	it("stays silent when no request finished", () => {

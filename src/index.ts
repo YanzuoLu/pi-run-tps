@@ -3,6 +3,8 @@ import { formatSummary, RunMeter } from "./meter.ts";
 
 export default function runTps(pi: ExtensionAPI): void {
 	const meter = new RunMeter();
+	/** The check scheduled after the run settled, dropped if the session ends first and takes its ctx with it. */
+	let pending: ReturnType<typeof setTimeout> | undefined;
 
 	pi.on("agent_start", () => {
 		meter.startRun(performance.now());
@@ -18,10 +20,16 @@ export default function runTps(pi: ExtensionAPI): void {
 		// Extensions may continue the task from their own agent_settled handlers, e.g. after an
 		// online compaction. Pi starts that run once settled handlers return, so check one tick
 		// later and keep accumulating into the same summary while work continues.
-		setTimeout(() => {
+		clearTimeout(pending);
+		pending = setTimeout(() => {
+			pending = undefined;
 			if (!ctx.isIdle()) return;
 			const summary = meter.settle(performance.now());
 			if (summary && ctx.hasUI) ctx.ui.notify(formatSummary(summary), "info");
 		}, 0);
+	});
+	pi.on("session_shutdown", () => {
+		clearTimeout(pending);
+		pending = undefined;
 	});
 }
